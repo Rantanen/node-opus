@@ -1,5 +1,5 @@
 {
-  "name": "opus",
+  "name": "node-opus",
   "description": "NodeJS native binding to OPUS",
   "version": "0.1.0",
   "author": "Mikko Rantanen <jubjub@jubjubnest.net>",
