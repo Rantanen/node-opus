@@ -1,0 +1,6 @@
+[submodule "deps/celt"]
+	path = deps/celt
+	url = http://git.xiph.org/celt.git
+[submodule "deps/opus"]
+	path = deps/opus
+	url = https://git.xiph.org/opus.git

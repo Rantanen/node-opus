@@ -1,0 +1,27 @@
+{
+  "name": "opus",
+  "description": "NodeJS native binding to OPUS",
+  "version": "0.1.0",
+  "author": "Mikko Rantanen <jubjub@jubjubnest.net>",
+  "homepage": "https://github.com/Rantanen/node-opus",
+  "bugs": "https://github.com/Rantanen/node-opus/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/Rantanen/node-opus.git"
+  },
+  "//": "Platform limitations is due to lack of config.h files. See README.md for more information.",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "dependencies": {
+    "bindings": "~1.2.1",
+    "nan": "~1.6.2"
+  }
+}
