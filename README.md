@@ -24,7 +24,7 @@ Supported platforms:
 - Linux x64
 
 Add new supported platforms by running ./autogen.sh and ./configure in
-deps/opus and copying the resulting config.h to deps/config/opus/<os>/<arch>.
+deps/opus and copying the resulting config.h to deps/config/opus/[os]/[arch].
 
 Use the following flags with configure:
 
