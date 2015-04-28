@@ -12,6 +12,11 @@
 using namespace node;
 using namespace v8;
 
+#define FRAME_SIZE 960
+#define MAX_FRAME_SIZE 6*960
+#define MAX_PACKET_SIZE (3*1276)
+#define BITRATE 64000
+
 class OpusEncoder : public ObjectWrap {
 	private:
 		OpusEncoder* encoder;
@@ -21,8 +26,8 @@ class OpusEncoder : public ObjectWrap {
 		int channels;
 		int application;
 
-		unsigned char compressedBuffer[ 1024 ];
-		opus_int16 frameBuffer[ 5760 * 2 ];
+		unsigned char outOpus[ MAX_PACKET_SIZE ];
+		opus_int16* outPcm;
 
 	protected:
 		int EnsureEncoder() {
@@ -42,6 +47,8 @@ class OpusEncoder : public ObjectWrap {
 	   	OpusEncoder( opus_int32 rate, int channels, int application ):
 			encoder( NULL ), decoder( NULL ),
 			rate( rate ), channels( channels ), application( application ) {
+
+			outPcm = new opus_int16[ channels * MAX_FRAME_SIZE ];
 		}
 
 		~OpusEncoder() {
@@ -52,29 +59,33 @@ class OpusEncoder : public ObjectWrap {
 
 			encoder = NULL;
 			decoder = NULL;
+
+			delete outPcm;
+			outPcm = NULL;
 		}
 
 		static NAN_METHOD(Encode) {
 			NanScope();
 
-			REQ_OBJ_ARG( 0, pcmBuffer );
-			REQ_INT_ARG( 1, frameSize );
-			OPT_INT_ARG( 2, compressedSize, 512 );
-
-			// Read the PCM data.
-			char* pcmData = Buffer::Data(pcmBuffer);
-			opus_int16* pcm = reinterpret_cast<opus_int16*>( pcmData );
-
 			// Unwrap the encoder.
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( args.This() );
 			self->EnsureEncoder();
 
+			// Read the functiona rguments
+			REQ_OBJ_ARG( 0, pcmBuffer );
+			OPT_INT_ARG( 1, maxPacketSize, MAX_PACKET_SIZE );
+
+			// Read the PCM data.
+			char* pcmData = Buffer::Data(pcmBuffer);
+			opus_int16* pcm = reinterpret_cast<opus_int16*>( pcmData );
+			int frameSize = Buffer::Length( pcmBuffer ) / 2 / self->channels;
+			TRACE_I( "frameSize", frameSize );
+
 			// Encode the samples.
-			int compressedLength = opus_encode( self->encoder, pcm, frameSize, &(self->compressedBuffer[0]), compressedSize );
+			int compressedLength = opus_encode( self->encoder, pcm, frameSize, &(self->outOpus[0]), maxPacketSize );
 
 			// Create a new result buffer.
-			Local<Object> actualBuffer = NanNewBufferHandle(reinterpret_cast<char*>(self->compressedBuffer), compressedLength );
-
+			Local<Object> actualBuffer = NanNewBufferHandle(reinterpret_cast<char*>(self->outOpus), compressedLength );
 			NanReturnValue( actualBuffer );
 		}
 
@@ -82,7 +93,6 @@ class OpusEncoder : public ObjectWrap {
 			NanScope();
 
 			REQ_OBJ_ARG( 0, compressedBuffer );
-			REQ_INT_ARG( 1, frameSize );
 
 			// Read the compressed data.
 			unsigned char* compressedData = (unsigned char*)Buffer::Data( compressedBuffer );
@@ -92,17 +102,16 @@ class OpusEncoder : public ObjectWrap {
 			self->EnsureDecoder();
 
 			// Encode the samples.
-			int decoded = opus_decode(
+			int decodedSamples = opus_decode(
 					self->decoder,
 					compressedData,
 					compressedDataLength,
-					&(self->frameBuffer[0]),
-				   	frameSize, /* decode_fex */ 0 );
+					&(self->outPcm[0]),
+				   	MAX_FRAME_SIZE, /* decode_fex */ 0 );
 
 			// Create a new result buffer.
-			Local<Object> actualBuffer = NanNewBufferHandle(reinterpret_cast<char*>(self->frameBuffer), decoded);
-
-
+			int decodedLength = decodedSamples * 2 * self->channels;
+			Local<Object> actualBuffer = NanNewBufferHandle( reinterpret_cast<char*>(self->outPcm), decodedLength );
 			NanReturnValue( actualBuffer );
 		}
 
@@ -114,7 +123,7 @@ class OpusEncoder : public ObjectWrap {
 				NanReturnUndefined();
 			}
 
-			OPT_INT_ARG(0, rate, 42000);
+			OPT_INT_ARG(0, rate, 48000);
 			OPT_INT_ARG(1, channels, 1);
 			OPT_INT_ARG(2, application, OPUS_APPLICATION_AUDIO);
 

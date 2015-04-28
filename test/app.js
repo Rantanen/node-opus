@@ -48,12 +48,13 @@ while( b.length > 0 ) {
 	}
 
     // We encode frame_size 16-bit samples. This requires a frame_size*2 buffer of bytes.
-	var bufferSize = frame_size;
+	var bufferSize = frame_size * 2;
 	var toEncode = b.slice(0, bufferSize);
+    console.log( frame_size );
 
     // Encode and decode.
-	var encoded = encoder.encode( toEncode, frame_size );
-	var decoded = encoder.decode( encoded, frame_size );
+	var encoded = encoder.encode( toEncode );
+	var decoded = encoder.decode( encoded );
 
     // Write the results in the output files.
     input_raw.write( toEncode );
