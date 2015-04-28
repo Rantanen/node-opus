@@ -79,7 +79,6 @@ class OpusEncoder : public ObjectWrap {
 			char* pcmData = Buffer::Data(pcmBuffer);
 			opus_int16* pcm = reinterpret_cast<opus_int16*>( pcmData );
 			int frameSize = Buffer::Length( pcmBuffer ) / 2 / self->channels;
-			TRACE_I( "frameSize", frameSize );
 
 			// Encode the samples.
 			int compressedLength = opus_encode( self->encoder, pcm, frameSize, &(self->outOpus[0]), maxPacketSize );
