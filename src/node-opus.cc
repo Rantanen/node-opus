@@ -17,6 +17,27 @@ using namespace v8;
 #define MAX_PACKET_SIZE (3*1276)
 #define BITRATE 64000
 
+const char* getDecodeError( int decodedSamples ) {
+	switch( decodedSamples ) {
+		case OPUS_BAD_ARG:
+			return "One or more invalid/out of range arguments";
+		case OPUS_BUFFER_TOO_SMALL:
+			return "The mode struct passed is invalid";
+		case OPUS_INTERNAL_ERROR:
+			return "An internal error was detected";
+		case OPUS_INVALID_PACKET:
+			return "The compressed data passed is corrupted";
+		case OPUS_UNIMPLEMENTED:
+			return "Invalid/unsupported request number.";
+		case OPUS_INVALID_STATE:
+			return "An encoder or decoder structure is invalid or already freed.";
+		case OPUS_ALLOC_FAIL:
+			return "Memory allocation has failed";
+		default:
+			return "Unknown OPUS error";
+	}
+}
+
 class OpusEncoder : public ObjectWrap {
 	private:
 		OpusEncoder* encoder;
@@ -107,6 +128,11 @@ class OpusEncoder : public ObjectWrap {
 					compressedDataLength,
 					&(self->outPcm[0]),
 				   	MAX_FRAME_SIZE, /* decode_fex */ 0 );
+
+			if( decodedSamples < 0 ) {
+				NanThrowTypeError( getDecodeError( decodedSamples ) );
+				NanReturnUndefined();
+			}
 
 			// Create a new result buffer.
 			int decodedLength = decodedSamples * 2 * self->channels;
