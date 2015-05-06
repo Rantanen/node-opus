@@ -23,6 +23,7 @@ Platform support
 Supported platforms:
 - Linux x64
 - Linux ARM (Raspberry Pi 1)
+- Mac OS X x64
 
 
 Add new supported platforms by running ./autogen.sh and ./configure in

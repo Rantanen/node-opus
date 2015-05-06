@@ -12,7 +12,8 @@
   },
   "//": "Platform limitations is due to lack of config.h files. See README.md for more information.",
   "os": [
-    "linux"
+    "linux",
+    "darwin"
   ],
   "cpu": [
     "x64",
