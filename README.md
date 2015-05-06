@@ -35,8 +35,6 @@ Use the following flags with configure:
 
 On a clean debian-based system, the full flow looks approximately like:
 
-	git submoduels init
-	git submodules update
 	sudo apt-get update
 	sudo apt-get install autoconf
 	sudo apt-get install libtool
