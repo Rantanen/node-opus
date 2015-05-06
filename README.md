@@ -22,6 +22,8 @@ Platform support
 
 Supported platforms:
 - Linux x64
+- Linux ARM (Raspberry Pi 1)
+
 
 Add new supported platforms by running ./autogen.sh and ./configure in
 deps/opus and copying the resulting config.h to deps/config/opus/[os]/[arch].
@@ -30,3 +32,17 @@ Use the following flags with configure:
 
     ./configure --enable-static --disable-shared --with-pic
 
+On a clean debian-based system, the full flow looks approximately like:
+
+	git submoduels init
+	git submodules update
+	sudo apt-get update
+	sudo apt-get install autoconf
+	sudo apt-get install libtool
+	cd deps/opus
+	./autogen.sh
+	./configure --enable-static --disable-shared --with-pic
+	mkdir -p ../config/opus/[os]/[arch]
+	cp config.h ../config/opus/[os]/[arch]
+
+And, then, the last step is to add the OS/Arch to `package.json`.
