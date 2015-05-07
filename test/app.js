@@ -26,8 +26,8 @@ for( var i = 0; i < rate*time; i++ ) {
 // Create the encoder.
 //
 
-// Use 10ms frames.
-var frame_size = rate/100;
+// Use 20ms frames.
+var frame_size = rate * 0.02;
 var encoder = new opus.OpusEncoder( rate );
 
 // Open the output streams.

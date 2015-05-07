@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "bindings": "~1.2.1",
-    "nan": "~1.6.2"
+    "nan": "~1.6.2",
+    "ogg-packet": "^1.0.0"
   }
 }
