@@ -140,6 +140,31 @@ class OpusEncoder : public ObjectWrap {
 			NanReturnValue( actualBuffer );
 		}
 
+		static NAN_METHOD(SetBitrate) {
+			NanScope();
+
+			REQ_INT_ARG( 0, bitrate );
+
+			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( args.This() );
+			self->EnsureEncoder();
+
+			opus_encoder_ctl( self->encoder, OPUS_SET_BITRATE( bitrate ) );
+
+			NanReturnUndefined();
+		}
+
+		static NAN_METHOD(GetBitrate) {
+			NanScope();
+
+			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( args.This() );
+			self->EnsureEncoder();
+
+			opus_int32 bitrate;
+			opus_encoder_ctl( self->encoder, OPUS_GET_BITRATE( &bitrate ) );
+
+			NanReturnValue( bitrate );
+		}
+
 		static NAN_METHOD(New) {
 			NanScope();
 
@@ -168,6 +193,12 @@ class OpusEncoder : public ObjectWrap {
 
 			tpl->PrototypeTemplate()->Set( NanNew<String>("decode"),
 				NanNew<FunctionTemplate>( Decode )->GetFunction() );
+
+			tpl->PrototypeTemplate()->Set( NanNew<String>("setBitrate"),
+				NanNew<FunctionTemplate>( SetBitrate )->GetFunction() );
+
+			tpl->PrototypeTemplate()->Set( NanNew<String>("getBitrate"),
+				NanNew<FunctionTemplate>( GetBitrate )->GetFunction() );
 
 			//v8::Persistent<v8::FunctionTemplate> constructor;
 			//NanAssignPersistent(constructor, tpl);
