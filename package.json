@@ -1,7 +1,7 @@
 {
   "name": "node-opus",
   "description": "NodeJS native binding to OPUS",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "Mikko Rantanen <jubjub@jubjubnest.net>",
   "homepage": "https://github.com/Rantanen/node-opus",
   "bugs": "https://github.com/Rantanen/node-opus/issues",
@@ -13,12 +13,12 @@
   "//": "Platform limitations is due to lack of config.h files. See README.md for more information.",
   "os": [
     "linux",
-    "darwin"
+    "darwin",
+    "win32"
   ],
   "cpu": [
     "x64",
-    "arm",
-    "win32"
+    "arm"
   ],
   "engines": {
     "node": ">=0.10.0"
