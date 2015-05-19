@@ -1,7 +1,7 @@
 {
   "name": "node-opus",
   "description": "NodeJS native binding to OPUS",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": "Mikko Rantanen <jubjub@jubjubnest.net>",
   "homepage": "https://github.com/Rantanen/node-opus",
   "bugs": "https://github.com/Rantanen/node-opus/issues",
@@ -17,7 +17,8 @@
   ],
   "cpu": [
     "x64",
-    "arm"
+    "arm",
+    "win32"
   ],
   "engines": {
     "node": ">=0.10.0"
