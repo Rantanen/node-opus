@@ -162,7 +162,7 @@ class OpusEncoder : public ObjectWrap {
 			opus_int32 bitrate;
 			opus_encoder_ctl( self->encoder, OPUS_GET_BITRATE( &bitrate ) );
 
-			NanReturnValue( bitrate );
+			NanReturnValue( NanNew<v8::Integer>( bitrate ) );
 		}
 
 		static NAN_METHOD(New) {
