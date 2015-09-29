@@ -86,10 +86,9 @@ class OpusEncoder : public ObjectWrap {
 		}
 
 		static NAN_METHOD(Encode) {
-			NanScope();
 
 			// Unwrap the encoder.
-			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( args.This() );
+			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
 			self->EnsureEncoder();
 
 			// Read the functiona rguments
@@ -105,12 +104,11 @@ class OpusEncoder : public ObjectWrap {
 			int compressedLength = opus_encode( self->encoder, pcm, frameSize, &(self->outOpus[0]), maxPacketSize );
 
 			// Create a new result buffer.
-			Local<Object> actualBuffer = NanNewBufferHandle(reinterpret_cast<char*>(self->outOpus), compressedLength );
-			NanReturnValue( actualBuffer );
+			Local<Object> actualBuffer = Nan::CopyBuffer(reinterpret_cast<char*>(self->outOpus), compressedLength ).ToLocalChecked();
+			info.GetReturnValue().Set( actualBuffer );
 		}
 
 		static NAN_METHOD(Decode) {
-			NanScope();
 
 			REQ_OBJ_ARG( 0, compressedBuffer );
 
@@ -118,7 +116,7 @@ class OpusEncoder : public ObjectWrap {
 			unsigned char* compressedData = (unsigned char*)Buffer::Data( compressedBuffer );
 			size_t compressedDataLength = Buffer::Length( compressedBuffer );
 
-			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( args.This() );
+			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
 			self->EnsureDecoder();
 
 			// Encode the samples.
@@ -130,47 +128,40 @@ class OpusEncoder : public ObjectWrap {
 				   	MAX_FRAME_SIZE, /* decode_fex */ 0 );
 
 			if( decodedSamples < 0 ) {
-				NanThrowTypeError( getDecodeError( decodedSamples ) );
-				NanReturnUndefined();
+				return Nan::ThrowTypeError( getDecodeError( decodedSamples ) );
 			}
 
 			// Create a new result buffer.
 			int decodedLength = decodedSamples * 2 * self->channels;
-			Local<Object> actualBuffer = NanNewBufferHandle( reinterpret_cast<char*>(self->outPcm), decodedLength );
-			NanReturnValue( actualBuffer );
+			Local<Object> actualBuffer = Nan::CopyBuffer( reinterpret_cast<char*>(self->outPcm), decodedLength ).ToLocalChecked();
+			info.GetReturnValue().Set( actualBuffer );
 		}
 
 		static NAN_METHOD(SetBitrate) {
-			NanScope();
 
 			REQ_INT_ARG( 0, bitrate );
 
-			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( args.This() );
+			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
 			self->EnsureEncoder();
 
 			opus_encoder_ctl( self->encoder, OPUS_SET_BITRATE( bitrate ) );
-
-			NanReturnUndefined();
 		}
 
 		static NAN_METHOD(GetBitrate) {
-			NanScope();
 
-			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( args.This() );
+			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
 			self->EnsureEncoder();
 
 			opus_int32 bitrate;
 			opus_encoder_ctl( self->encoder, OPUS_GET_BITRATE( &bitrate ) );
 
-			NanReturnValue( NanNew<v8::Integer>( bitrate ) );
+			info.GetReturnValue().Set( Nan::New<v8::Integer>( bitrate ) );
 		}
 
 		static NAN_METHOD(New) {
-			NanScope();
 
-			if( !args.IsConstructCall()) {
-				NanThrowTypeError("Use the new operator to construct the OpusEncoder.");
-				NanReturnUndefined();
+			if( !info.IsConstructCall()) {
+				return Nan::ThrowTypeError("Use the new operator to construct the OpusEncoder.");
 			}
 
 			OPT_INT_ARG(0, rate, 48000);
@@ -179,30 +170,30 @@ class OpusEncoder : public ObjectWrap {
 
 			OpusEncoder* encoder = new OpusEncoder( rate, channels, application );
 
-			encoder->Wrap( args.This() );
-			NanReturnValue(args.This());
+			encoder->Wrap( info.This() );
+			info.GetReturnValue().Set(info.This());
 		}
 
 		static void Init(Handle<Object> exports) {
-			Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
-			tpl->SetClassName(NanNew<String>("OpusEncoder"));
+			Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+			tpl->SetClassName(Nan::New<String>("OpusEncoder").ToLocalChecked());
 			tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-			tpl->PrototypeTemplate()->Set( NanNew<String>("encode"),
-				NanNew<FunctionTemplate>( Encode )->GetFunction() );
+			tpl->PrototypeTemplate()->Set( Nan::New<String>("encode").ToLocalChecked(),
+				Nan::New<FunctionTemplate>( Encode )->GetFunction() );
 
-			tpl->PrototypeTemplate()->Set( NanNew<String>("decode"),
-				NanNew<FunctionTemplate>( Decode )->GetFunction() );
+			tpl->PrototypeTemplate()->Set( Nan::New<String>("decode").ToLocalChecked(),
+				Nan::New<FunctionTemplate>( Decode )->GetFunction() );
 
-			tpl->PrototypeTemplate()->Set( NanNew<String>("setBitrate"),
-				NanNew<FunctionTemplate>( SetBitrate )->GetFunction() );
+			tpl->PrototypeTemplate()->Set( Nan::New<String>("setBitrate").ToLocalChecked(),
+				Nan::New<FunctionTemplate>( SetBitrate )->GetFunction() );
 
-			tpl->PrototypeTemplate()->Set( NanNew<String>("getBitrate"),
-				NanNew<FunctionTemplate>( GetBitrate )->GetFunction() );
+			tpl->PrototypeTemplate()->Set( Nan::New<String>("getBitrate").ToLocalChecked(),
+				Nan::New<FunctionTemplate>( GetBitrate )->GetFunction() );
 
 			//v8::Persistent<v8::FunctionTemplate> constructor;
 			//NanAssignPersistent(constructor, tpl);
-			exports->Set(NanNew<String>("OpusEncoder"), tpl->GetFunction());
+			exports->Set(Nan::New<String>("OpusEncoder").ToLocalChecked(), tpl->GetFunction());
 		}
 };
 
