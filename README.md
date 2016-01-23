@@ -29,7 +29,7 @@ Platform support
 ----------------
 
 Supported platforms:
-- Linux x64
+- Linux x64 & ia32
 - Linux ARM (Raspberry Pi 1 & 2)
 - Mac OS X x64
 - Windows x64
