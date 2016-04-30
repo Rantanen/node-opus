@@ -85,7 +85,7 @@ class OpusEncoder : public ObjectWrap {
 			outPcm = NULL;
 		}
 
-		static NAN_METHOD(Encode) {
+		static void Encode( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
 
 			// Unwrap the encoder.
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
@@ -104,11 +104,12 @@ class OpusEncoder : public ObjectWrap {
 			int compressedLength = opus_encode( self->encoder, pcm, frameSize, &(self->outOpus[0]), maxPacketSize );
 
 			// Create a new result buffer.
-			Local<Object> actualBuffer = Nan::CopyBuffer(reinterpret_cast<char*>(self->outOpus), compressedLength ).ToLocalChecked();
-			info.GetReturnValue().Set( actualBuffer );
+			Nan::MaybeLocal<Object> actualBuffer = Nan::CopyBuffer(reinterpret_cast<char*>(self->outOpus), compressedLength );
+			if( !actualBuffer.IsEmpty() )
+				info.GetReturnValue().Set( actualBuffer.ToLocalChecked() );
 		}
 
-		static NAN_METHOD(Decode) {
+		static void Decode( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
 
 			REQ_OBJ_ARG( 0, compressedBuffer );
 
@@ -133,11 +134,12 @@ class OpusEncoder : public ObjectWrap {
 
 			// Create a new result buffer.
 			int decodedLength = decodedSamples * 2 * self->channels;
-			Local<Object> actualBuffer = Nan::CopyBuffer( reinterpret_cast<char*>(self->outPcm), decodedLength ).ToLocalChecked();
-			info.GetReturnValue().Set( actualBuffer );
+			Nan::MaybeLocal<Object> actualBuffer = Nan::CopyBuffer( reinterpret_cast<char*>(self->outPcm), decodedLength );
+			if( !actualBuffer.IsEmpty() )
+				info.GetReturnValue().Set( actualBuffer.ToLocalChecked() );
 		}
 
-		static NAN_METHOD(SetBitrate) {
+		static void SetBitrate( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
 
 			REQ_INT_ARG( 0, bitrate );
 
@@ -147,7 +149,7 @@ class OpusEncoder : public ObjectWrap {
 			opus_encoder_ctl( self->encoder, OPUS_SET_BITRATE( bitrate ) );
 		}
 
-		static NAN_METHOD(GetBitrate) {
+		static void GetBitrate( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
 
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
 			self->EnsureEncoder();
@@ -158,7 +160,7 @@ class OpusEncoder : public ObjectWrap {
 			info.GetReturnValue().Set( Nan::New<v8::Integer>( bitrate ) );
 		}
 
-		static NAN_METHOD(New) {
+		static void New( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
 
 			if( !info.IsConstructCall()) {
 				return Nan::ThrowTypeError("Use the new operator to construct the OpusEncoder.");
@@ -174,31 +176,26 @@ class OpusEncoder : public ObjectWrap {
 			info.GetReturnValue().Set(info.This());
 		}
 
-		static void Init(Handle<Object> exports) {
+		static void Init( Local<Object> exports ) {
+			Nan::HandleScope scope;
+
 			Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
-			tpl->SetClassName(Nan::New<String>("OpusEncoder").ToLocalChecked());
+			tpl->SetClassName(Nan::New("OpusEncoder").ToLocalChecked());
 			tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-			tpl->PrototypeTemplate()->Set( Nan::New<String>("encode").ToLocalChecked(),
-				Nan::New<FunctionTemplate>( Encode )->GetFunction() );
-
-			tpl->PrototypeTemplate()->Set( Nan::New<String>("decode").ToLocalChecked(),
-				Nan::New<FunctionTemplate>( Decode )->GetFunction() );
-
-			tpl->PrototypeTemplate()->Set( Nan::New<String>("setBitrate").ToLocalChecked(),
-				Nan::New<FunctionTemplate>( SetBitrate )->GetFunction() );
-
-			tpl->PrototypeTemplate()->Set( Nan::New<String>("getBitrate").ToLocalChecked(),
-				Nan::New<FunctionTemplate>( GetBitrate )->GetFunction() );
+			Nan::SetPrototypeMethod( tpl, "encode", Encode );
+			Nan::SetPrototypeMethod( tpl, "decode", Decode );
+			Nan::SetPrototypeMethod( tpl, "setBitrate", SetBitrate );
+			Nan::SetPrototypeMethod( tpl, "getBitrate", GetBitrate );
 
 			//v8::Persistent<v8::FunctionTemplate> constructor;
-			//NanAssignPersistent(constructor, tpl);
-			exports->Set(Nan::New<String>("OpusEncoder").ToLocalChecked(), tpl->GetFunction());
+			//Nan::AssignPersistent(constructor, tpl);
+			exports->Set( Nan::New("OpusEncoder").ToLocalChecked(), tpl->GetFunction() );
 		}
 };
 
 
-void NodeInit(Handle<Object> exports) {
+void NodeInit( Local< Object > exports ) {
 	OpusEncoder::Init( exports );
 }
 
