@@ -89,7 +89,11 @@ class OpusEncoder : public ObjectWrap {
 
 			// Unwrap the encoder.
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
-			self->EnsureEncoder();
+			if( self->EnsureEncoder() != OPUS_OK ) {
+				Nan::ThrowError( "Could not create encoder. Check the encoder parameters" );
+				return;
+			}
+
 
 			// Read the functiona rguments
 			REQ_OBJ_ARG( 0, pcmBuffer );
@@ -118,7 +122,10 @@ class OpusEncoder : public ObjectWrap {
 			size_t compressedDataLength = Buffer::Length( compressedBuffer );
 
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
-			self->EnsureDecoder();
+			if( self->EnsureDecoder() != OPUS_OK ) {
+				Nan::ThrowError( "Could not create decoder. Check the decoder parameters" );
+				return;
+			}
 
 			// Encode the samples.
 			int decodedSamples = opus_decode(
@@ -144,15 +151,22 @@ class OpusEncoder : public ObjectWrap {
 			REQ_INT_ARG( 0, bitrate );
 
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
-			self->EnsureEncoder();
+			if( self->EnsureEncoder() != OPUS_OK ) {
+				Nan::ThrowError( "Could not create encoder. Check the encoder parameters" );
+				return;
+			}
 
-			opus_encoder_ctl( self->encoder, OPUS_SET_BITRATE( bitrate ) );
+			if( opus_encoder_ctl( self->encoder, OPUS_SET_BITRATE( bitrate ) ) != OPUS_OK )
+				return Nan::ThrowError( "Invalid bitrate" );
 		}
 
 		static void GetBitrate( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
 
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
-			self->EnsureEncoder();
+			if( self->EnsureEncoder() != OPUS_OK ) {
+				Nan::ThrowError( "Could not create encoder. Check the encoder parameters" );
+				return;
+			}
 
 			opus_int32 bitrate;
 			opus_encoder_ctl( self->encoder, OPUS_GET_BITRATE( &bitrate ) );
