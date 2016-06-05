@@ -1,8 +1,10 @@
-/* Copyright (C) 2008 CSIRO */
+/* Copyright (c) 2015 Xiph.Org Foundation
+   Written by Viswanath Puttagunta */
 /**
-   @file fixed_c6x.h
-   @brief Fixed-point operations for the TI C6x DSP family
-*/
+   @file fft_arm.h
+   @brief ARM Neon Intrinsic optimizations for fft using NE10 library
+ */
+
 /*
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
@@ -28,43 +30,43 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef FIXED_C6X_H
-#define FIXED_C6X_H
 
-#undef MULT16_16SU
-#define MULT16_16SU(a,b) _mpysu(a,b)
+#if !defined(FFT_ARM_H)
+#define FFT_ARM_H
 
-#undef MULT_16_16
-#define MULT_16_16(a,b) _mpy(a,b)
+#include "config.h"
+#include "kiss_fft.h"
 
-#define celt_ilog2(x) (30 - _norm(x))
-#define OVERRIDE_CELT_ILOG2
+#if defined(HAVE_ARM_NE10)
 
-#undef MULT16_32_Q15
-#define MULT16_32_Q15(a,b) (_mpylill(a, b) >> 15)
+int opus_fft_alloc_arm_neon(kiss_fft_state *st);
+void opus_fft_free_arm_neon(kiss_fft_state *st);
 
-#if 0
-#include "dsplib.h"
+void opus_fft_neon(const kiss_fft_state *st,
+                   const kiss_fft_cpx *fin,
+                   kiss_fft_cpx *fout);
 
-#undef MAX16
-#define MAX16(a,b) _max(a,b)
+void opus_ifft_neon(const kiss_fft_state *st,
+                    const kiss_fft_cpx *fin,
+                    kiss_fft_cpx *fout);
 
-#undef MIN16
-#define MIN16(a,b) _min(a,b)
+#if !defined(OPUS_HAVE_RTCD)
+#define OVERRIDE_OPUS_FFT (1)
 
-#undef MAX32
-#define MAX32(a,b) _lmax(a,b)
+#define opus_fft_alloc_arch(_st, arch) \
+   ((void)(arch), opus_fft_alloc_arm_neon(_st))
 
-#undef MIN32
-#define MIN32(a,b) _lmin(a,b)
+#define opus_fft_free_arch(_st, arch) \
+   ((void)(arch), opus_fft_free_arm_neon(_st))
 
-#undef VSHR32
-#define VSHR32(a, shift) _lshl(a,-(shift))
+#define opus_fft(_st, _fin, _fout, arch) \
+   ((void)(arch), opus_fft_neon(_st, _fin, _fout))
 
-#undef MULT16_16_Q15
-#define MULT16_16_Q15(a,b) (_smpy(a,b))
+#define opus_ifft(_st, _fin, _fout, arch) \
+   ((void)(arch), opus_ifft_neon(_st, _fin, _fout))
 
-#define celt_maxabs16(x, len) MAX32(EXTEND32(maxval((DATA *)x, len)),-EXTEND32(minval((DATA *)x, len)))
-#define OVERRIDE_CELT_MAXABS16
+#endif /* OPUS_HAVE_RTCD */
 
-#endif /* FIXED_C6X_H */
+#endif /* HAVE_ARM_NE10 */
+
+#endif

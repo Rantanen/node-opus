@@ -56,10 +56,12 @@
 #define OVERRIDE_comb_filter
 void comb_filter(opus_val32 *y, opus_val32 *x, int T0, int T1, int N,
       opus_val16 g0, opus_val16 g1, int tapset0, int tapset1,
-      const opus_val16 *window, int overlap)
+      const opus_val16 *window, int overlap, int arch)
 {
    int i;
    opus_val32 x0, x1, x2, x3, x4;
+
+   (void)arch;
 
    /* printf ("%d %d %f %f\n", T0, T1, g0, g1); */
    opus_val16 g00, g01, g02, g10, g11, g12;

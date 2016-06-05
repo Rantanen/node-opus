@@ -81,6 +81,10 @@ struct OpusEncoder {
     int          lsb_depth;
     int          encoder_buffer;
     int          lfe;
+    int          arch;
+#ifndef DISABLE_FLOAT_API
+    TonalityAnalysisState analysis;
+#endif
 
 #define OPUS_ENCODER_RESET_START stream_channels
     int          stream_channels;
@@ -100,12 +104,9 @@ struct OpusEncoder {
     StereoWidthState width_mem;
     opus_val16   delay_buffer[MAX_ENCODER_BUFFER*2];
 #ifndef DISABLE_FLOAT_API
-    TonalityAnalysisState analysis;
     int          detected_bandwidth;
-    int          analysis_offset;
 #endif
     opus_uint32  rangeFinal;
-    int          arch;
 };
 
 /* Transition tables for the voice and music. First column is the
@@ -242,6 +243,10 @@ int opus_encoder_init(OpusEncoder* st, opus_int32 Fs, int channels, int applicat
     st->first = 1;
     st->mode = MODE_HYBRID;
     st->bandwidth = OPUS_BANDWIDTH_FULLBAND;
+
+#ifndef DISABLE_FLOAT_API
+    tonality_analysis_init(&st->analysis);
+#endif
 
     return OPUS_OK;
 }
@@ -1465,7 +1470,10 @@ opus_int32 opus_encode_native(OpusEncoder *st, const opus_val16 *pcm, int frame_
        /* This should filter out both NaNs and ridiculous signals that could
           cause NaNs further down. */
        if (!(sum < 1e9f) || celt_isnan(sum))
+       {
           OPUS_CLEAR(&pcm_buf[total_buffer*st->channels], frame_size*st->channels);
+          st->hp_mem[0] = st->hp_mem[1] = st->hp_mem[2] = st->hp_mem[3] = 0;
+       }
     }
 #endif
 
@@ -2446,11 +2454,14 @@ int opus_encoder_ctl(OpusEncoder *st, int request, ...)
         {
            void *silk_enc;
            silk_EncControlStruct dummy;
+           char *start;
            silk_enc = (char*)st+st->silk_enc_offset;
+#ifndef DISABLE_FLOAT_API
+           tonality_analysis_reset(&st->analysis);
+#endif
 
-           OPUS_CLEAR((char*)&st->OPUS_ENCODER_RESET_START,
-                 sizeof(OpusEncoder)-
-                 ((char*)&st->OPUS_ENCODER_RESET_START - (char*)st));
+           start = (char*)&st->OPUS_ENCODER_RESET_START;
+           OPUS_CLEAR(start, sizeof(OpusEncoder) - (start - (char*)st));
 
            celt_encoder_ctl(celt_enc, OPUS_RESET_STATE);
            silk_InitEncoder( silk_enc, st->arch, &dummy );

@@ -278,8 +278,9 @@ void deemphasis(celt_sig *in[], opus_val16 *pcm, int N, int C, int downsample, c
 static
 #endif
 void celt_synthesis(const CELTMode *mode, celt_norm *X, celt_sig * out_syn[],
-      opus_val16 *oldBandE, int start, int effEnd, int C, int CC, int isTransient,
-      int LM, int downsample, int silence)
+                    opus_val16 *oldBandE, int start, int effEnd, int C, int CC,
+                    int isTransient, int LM, int downsample,
+                    int silence, int arch)
 {
    int c, i;
    int M;
@@ -319,9 +320,9 @@ void celt_synthesis(const CELTMode *mode, celt_norm *X, celt_sig * out_syn[],
       freq2 = out_syn[1]+overlap/2;
       OPUS_COPY(freq2, freq, N);
       for (b=0;b<B;b++)
-         clt_mdct_backward(&mode->mdct, &freq2[b], out_syn[0]+NB*b, mode->window, overlap, shift, B);
+         clt_mdct_backward(&mode->mdct, &freq2[b], out_syn[0]+NB*b, mode->window, overlap, shift, B, arch);
       for (b=0;b<B;b++)
-         clt_mdct_backward(&mode->mdct, &freq[b], out_syn[1]+NB*b, mode->window, overlap, shift, B);
+         clt_mdct_backward(&mode->mdct, &freq[b], out_syn[1]+NB*b, mode->window, overlap, shift, B, arch);
    } else if (CC==1&&C==2)
    {
       /* Downmixing a stereo stream to mono */
@@ -335,14 +336,14 @@ void celt_synthesis(const CELTMode *mode, celt_norm *X, celt_sig * out_syn[],
       for (i=0;i<N;i++)
          freq[i] = HALF32(ADD32(freq[i],freq2[i]));
       for (b=0;b<B;b++)
-         clt_mdct_backward(&mode->mdct, &freq[b], out_syn[0]+NB*b, mode->window, overlap, shift, B);
+         clt_mdct_backward(&mode->mdct, &freq[b], out_syn[0]+NB*b, mode->window, overlap, shift, B, arch);
    } else {
       /* Normal case (mono or stereo) */
       c=0; do {
          denormalise_bands(mode, X+c*N, freq, oldBandE+c*nbEBands, start, effEnd, M,
                downsample, silence);
          for (b=0;b<B;b++)
-            clt_mdct_backward(&mode->mdct, &freq[b], out_syn[c]+NB*b, mode->window, overlap, shift, B);
+            clt_mdct_backward(&mode->mdct, &freq[b], out_syn[c]+NB*b, mode->window, overlap, shift, B, arch);
       } while (++c<CC);
    }
    RESTORE_STACK;
@@ -456,10 +457,9 @@ static void celt_decode_lost(CELTDecoder * OPUS_RESTRICT st, int N, int LM)
       VARDECL(celt_norm, X);
 #endif
       opus_uint32 seed;
-      opus_val16 *plcLogE;
       int end;
       int effEnd;
-
+      opus_val16 decay;
       end = st->end;
       effEnd = IMAX(start, IMIN(end, mode->effEBands));
 
@@ -471,19 +471,13 @@ static void celt_decode_lost(CELTDecoder * OPUS_RESTRICT st, int N, int LM)
       ALLOC(X, C*N, celt_norm);   /**< Interleaved normalised MDCTs */
 #endif
 
-      if (loss_count >= 5)
-         plcLogE = backgroundLogE;
-      else {
-         /* Energy decay */
-         opus_val16 decay = loss_count==0 ?
-               QCONST16(1.5f, DB_SHIFT) : QCONST16(.5f, DB_SHIFT);
-         c=0; do
-         {
-            for (i=start;i<end;i++)
-               oldBandE[c*nbEBands+i] -= decay;
-         } while (++c<C);
-         plcLogE = oldBandE;
-      }
+      /* Energy decay */
+      decay = loss_count==0 ? QCONST16(1.5f, DB_SHIFT) : QCONST16(.5f, DB_SHIFT);
+      c=0; do
+      {
+         for (i=start;i<end;i++)
+            oldBandE[c*nbEBands+i] = MAX16(backgroundLogE[c*nbEBands+i], oldBandE[c*nbEBands+i] - decay);
+      } while (++c<C);
       seed = st->rng;
       for (c=0;c<C;c++)
       {
@@ -509,7 +503,7 @@ static void celt_decode_lost(CELTDecoder * OPUS_RESTRICT st, int N, int LM)
                DECODE_BUFFER_SIZE-N+(overlap>>1));
       } while (++c<C);
 
-      celt_synthesis(mode, X, out_syn, plcLogE, start, effEnd, C, C, 0, LM, st->downsample, 0);
+      celt_synthesis(mode, X, out_syn, oldBandE, start, effEnd, C, C, 0, LM, st->downsample, 0, st->arch);
    } else {
       /* Pitch-based PLC */
       const opus_val16 *window;
@@ -698,7 +692,7 @@ static void celt_decode_lost(CELTDecoder * OPUS_RESTRICT st, int N, int LM)
          comb_filter(etmp, buf+DECODE_BUFFER_SIZE,
               st->postfilter_period, st->postfilter_period, overlap,
               -st->postfilter_gain, -st->postfilter_gain,
-              st->postfilter_tapset, st->postfilter_tapset, NULL, 0);
+              st->postfilter_tapset, st->postfilter_tapset, NULL, 0, st->arch);
 
          /* Simulate TDAC on the concealed audio so that it blends with the
             MDCT of the next frame. */
@@ -1002,18 +996,19 @@ int celt_decode_with_ec(CELTDecoder * OPUS_RESTRICT st, const unsigned char *dat
          oldBandE[i] = -QCONST16(28.f,DB_SHIFT);
    }
 
-   celt_synthesis(mode, X, out_syn, oldBandE, start, effEnd, C, CC, isTransient, LM, st->downsample, silence);
+   celt_synthesis(mode, X, out_syn, oldBandE, start, effEnd,
+                  C, CC, isTransient, LM, st->downsample, silence, st->arch);
 
    c=0; do {
       st->postfilter_period=IMAX(st->postfilter_period, COMBFILTER_MINPERIOD);
       st->postfilter_period_old=IMAX(st->postfilter_period_old, COMBFILTER_MINPERIOD);
       comb_filter(out_syn[c], out_syn[c], st->postfilter_period_old, st->postfilter_period, mode->shortMdctSize,
             st->postfilter_gain_old, st->postfilter_gain, st->postfilter_tapset_old, st->postfilter_tapset,
-            mode->window, overlap);
+            mode->window, overlap, st->arch);
       if (LM!=0)
          comb_filter(out_syn[c]+mode->shortMdctSize, out_syn[c]+mode->shortMdctSize, st->postfilter_period, postfilter_pitch, N-mode->shortMdctSize,
                st->postfilter_gain, postfilter_gain, st->postfilter_tapset, postfilter_tapset,
-               mode->window, overlap);
+               mode->window, overlap, st->arch);
 
    } while (++c<CC);
    st->postfilter_period_old = st->postfilter_period;
@@ -1035,10 +1030,18 @@ int celt_decode_with_ec(CELTDecoder * OPUS_RESTRICT st, const unsigned char *dat
    /* In case start or end were to change */
    if (!isTransient)
    {
+      opus_val16 max_background_increase;
       OPUS_COPY(oldLogE2, oldLogE, 2*nbEBands);
       OPUS_COPY(oldLogE, oldBandE, 2*nbEBands);
+      /* In normal circumstances, we only allow the noise floor to increase by
+         up to 2.4 dB/second, but when we're in DTX, we allow up to 6 dB
+         increase for each update.*/
+      if (st->loss_count < 10)
+         max_background_increase = M*QCONST16(0.001f,DB_SHIFT);
+      else
+         max_background_increase = QCONST16(1.f,DB_SHIFT);
       for (i=0;i<2*nbEBands;i++)
-         backgroundLogE[i] = MIN16(backgroundLogE[i] + M*QCONST16(0.001f,DB_SHIFT), oldBandE[i]);
+         backgroundLogE[i] = MIN16(backgroundLogE[i] + max_background_increase, oldBandE[i]);
    } else {
       for (i=0;i<2*nbEBands;i++)
          oldLogE[i] = MIN16(oldLogE[i], oldBandE[i]);

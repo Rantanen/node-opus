@@ -343,9 +343,9 @@ static int transient_analysis(const opus_val32 * OPUS_RESTRICT in, int len, int 
       {
          int id;
 #ifdef FIXED_POINT
-         id = IMAX(0,IMIN(127,MULT16_32_Q15(tmp[i],norm))); /* Do not round to nearest */
+         id = MAX32(0,MIN32(127,MULT16_32_Q15(tmp[i]+EPSILON,norm))); /* Do not round to nearest */
 #else
-         id = IMAX(0,IMIN(127,(int)floor(64*norm*tmp[i]))); /* Do not round to nearest */
+         id = (int)MAX32(0,MIN32(127,floor(64*norm*(tmp[i]+EPSILON)))); /* Do not round to nearest */
 #endif
          unmask += inv_table[id];
       }
@@ -375,8 +375,8 @@ static int transient_analysis(const opus_val32 * OPUS_RESTRICT in, int len, int 
 
 /* Looks for sudden increases of energy to decide whether we need to patch
    the transient decision */
-int patch_transient_decision(opus_val16 *newE, opus_val16 *oldE, int nbEBands,
-      int end, int C)
+static int patch_transient_decision(opus_val16 *newE, opus_val16 *oldE, int nbEBands,
+      int start, int end, int C)
 {
    int i, c;
    opus_val32 mean_diff=0;
@@ -385,28 +385,28 @@ int patch_transient_decision(opus_val16 *newE, opus_val16 *oldE, int nbEBands,
       avoid false detection caused by irrelevant bands */
    if (C==1)
    {
-      spread_old[0] = oldE[0];
-      for (i=1;i<end;i++)
+      spread_old[start] = oldE[start];
+      for (i=start+1;i<end;i++)
          spread_old[i] = MAX16(spread_old[i-1]-QCONST16(1.0f, DB_SHIFT), oldE[i]);
    } else {
-      spread_old[0] = MAX16(oldE[0],oldE[nbEBands]);
-      for (i=1;i<end;i++)
+      spread_old[start] = MAX16(oldE[start],oldE[start+nbEBands]);
+      for (i=start+1;i<end;i++)
          spread_old[i] = MAX16(spread_old[i-1]-QCONST16(1.0f, DB_SHIFT),
                                MAX16(oldE[i],oldE[i+nbEBands]));
    }
-   for (i=end-2;i>=0;i--)
+   for (i=end-2;i>=start;i--)
       spread_old[i] = MAX16(spread_old[i], spread_old[i+1]-QCONST16(1.0f, DB_SHIFT));
    /* Compute mean increase */
    c=0; do {
-      for (i=2;i<end-1;i++)
+      for (i=IMAX(2,start);i<end-1;i++)
       {
          opus_val16 x1, x2;
-         x1 = MAX16(0, newE[i]);
+         x1 = MAX16(0, newE[i + c*nbEBands]);
          x2 = MAX16(0, spread_old[i]);
          mean_diff = ADD32(mean_diff, EXTEND32(MAX16(0, SUB16(x1, x2))));
       }
    } while (++c<C);
-   mean_diff = DIV32(mean_diff, C*(end-3));
+   mean_diff = DIV32(mean_diff, C*(end-1-IMAX(2,start)));
    /*printf("%f %f %d\n", mean_diff, max_diff, count);*/
    return mean_diff > QCONST16(1.f, DB_SHIFT);
 }
@@ -414,7 +414,8 @@ int patch_transient_decision(opus_val16 *newE, opus_val16 *oldE, int nbEBands,
 /** Apply window and compute the MDCT for all sub-frames and
     all channels in a frame */
 static void compute_mdcts(const CELTMode *mode, int shortBlocks, celt_sig * OPUS_RESTRICT in,
-                          celt_sig * OPUS_RESTRICT out, int C, int CC, int LM, int upsample)
+                          celt_sig * OPUS_RESTRICT out, int C, int CC, int LM, int upsample,
+                          int arch)
 {
    const int overlap = mode->overlap;
    int N;
@@ -435,7 +436,9 @@ static void compute_mdcts(const CELTMode *mode, int shortBlocks, celt_sig * OPUS
       for (b=0;b<B;b++)
       {
          /* Interleaving the sub-frames while doing the MDCTs */
-         clt_mdct_forward(&mode->mdct, in+c*(B*N+overlap)+b*N, &out[b+c*N*B], mode->window, overlap, shift, B);
+         clt_mdct_forward(&mode->mdct, in+c*(B*N+overlap)+b*N,
+                          &out[b+c*N*B], mode->window, overlap, shift, B,
+                          arch);
       }
    } while (++c<CC);
    if (CC==2&&C==1)
@@ -1163,11 +1166,11 @@ static int run_prefilter(CELTEncoder *st, celt_sig *in, celt_sig *prefilter_mem,
       if (offset)
          comb_filter(in+c*(N+overlap)+overlap, pre[c]+COMBFILTER_MAXPERIOD,
                st->prefilter_period, st->prefilter_period, offset, -st->prefilter_gain, -st->prefilter_gain,
-               st->prefilter_tapset, st->prefilter_tapset, NULL, 0);
+               st->prefilter_tapset, st->prefilter_tapset, NULL, 0, st->arch);
 
       comb_filter(in+c*(N+overlap)+overlap+offset, pre[c]+COMBFILTER_MAXPERIOD+offset,
             st->prefilter_period, pitch_index, N-offset, -st->prefilter_gain, -gain1,
-            st->prefilter_tapset, prefilter_tapset, mode->window, overlap);
+            st->prefilter_tapset, prefilter_tapset, mode->window, overlap, st->arch);
       OPUS_COPY(st->in_mem+c*(overlap), in+c*(N+overlap)+N, overlap);
 
       if (N>COMBFILTER_MAXPERIOD)
@@ -1603,14 +1606,14 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_val16 * pcm, 
    ALLOC(bandLogE2, C*nbEBands, opus_val16);
    if (secondMdct)
    {
-      compute_mdcts(mode, 0, in, freq, C, CC, LM, st->upsample);
+      compute_mdcts(mode, 0, in, freq, C, CC, LM, st->upsample, st->arch);
       compute_band_energies(mode, freq, bandE, effEnd, C, LM);
       amp2Log2(mode, effEnd, end, bandE, bandLogE2, C);
       for (i=0;i<C*nbEBands;i++)
          bandLogE2[i] += HALF16(SHL16(LM, DB_SHIFT));
    }
 
-   compute_mdcts(mode, shortBlocks, in, freq, C, CC, LM, st->upsample);
+   compute_mdcts(mode, shortBlocks, in, freq, C, CC, LM, st->upsample, st->arch);
    if (CC==2&&C==1)
       tf_chan = 0;
    compute_band_energies(mode, freq, bandE, effEnd, C, LM);
@@ -1732,11 +1735,11 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_val16 * pcm, 
       time-domain analysis */
    if (LM>0 && ec_tell(enc)+3<=total_bits && !isTransient && st->complexity>=5 && !st->lfe)
    {
-      if (patch_transient_decision(bandLogE, oldBandE, nbEBands, end, C))
+      if (patch_transient_decision(bandLogE, oldBandE, nbEBands, start, end, C))
       {
          isTransient = 1;
          shortBlocks = M;
-         compute_mdcts(mode, shortBlocks, in, freq, C, CC, LM, st->upsample);
+         compute_mdcts(mode, shortBlocks, in, freq, C, CC, LM, st->upsample, st->arch);
          compute_band_energies(mode, freq, bandE, effEnd, C, LM);
          amp2Log2(mode, effEnd, end, bandE, bandLogE, C);
          /* Compensate for the scaling of short vs long mdcts */
@@ -2069,7 +2072,8 @@ int celt_encode_with_ec(CELTEncoder * OPUS_RESTRICT st, const opus_val16 * pcm, 
          out_mem[c] = st->syn_mem[c]+2*MAX_PERIOD-N;
       } while (++c<CC);
 
-      celt_synthesis(mode, X, out_mem, oldBandE, start, effEnd, C, CC, isTransient, LM, st->upsample, silence);
+      celt_synthesis(mode, X, out_mem, oldBandE, start, effEnd,
+                     C, CC, isTransient, LM, st->upsample, silence, st->arch);
 
       c=0; do {
          st->prefilter_period=IMAX(st->prefilter_period, COMBFILTER_MINPERIOD);

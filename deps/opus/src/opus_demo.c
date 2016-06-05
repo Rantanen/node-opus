@@ -834,35 +834,39 @@ int main(int argc, char *argv[])
         }
 
         lost_prev = lost;
-
-        /* count bits */
-        bits += len[toggle]*8;
-        bits_max = ( len[toggle]*8 > bits_max ) ? len[toggle]*8 : bits_max;
         if( count >= use_inbandfec ) {
-            nrg = 0.0;
+            /* count bits */
+            bits += len[toggle]*8;
+            bits_max = ( len[toggle]*8 > bits_max ) ? len[toggle]*8 : bits_max;
+            bits2 += len[toggle]*len[toggle]*64;
             if (!decode_only)
             {
+                nrg = 0.0;
                 for ( k = 0; k < frame_size * channels; k++ ) {
                     nrg += in[ k ] * (double)in[ k ];
                 }
+                nrg /= frame_size * channels;
+                if( nrg > 1e5 ) {
+                    bits_act += len[toggle]*8;
+                    count_act++;
+                }
             }
-            if ( ( nrg / ( frame_size * channels ) ) > 1e5 ) {
-                bits_act += len[toggle]*8;
-                count_act++;
-            }
-            /* Variance */
-            bits2 += len[toggle]*len[toggle]*64;
         }
         count++;
         toggle = (toggle + use_inbandfec) & 1;
     }
+
+    /* Print out bitrate statistics */
+    if(decode_only)
+        frame_size = (int)(tot_samples / count);
+    count -= use_inbandfec;
     fprintf (stderr, "average bitrate:             %7.3f kb/s\n",
                      1e-3*bits*sampling_rate/tot_samples);
     fprintf (stderr, "maximum bitrate:             %7.3f kb/s\n",
                      1e-3*bits_max*sampling_rate/frame_size);
     if (!decode_only)
        fprintf (stderr, "active bitrate:              %7.3f kb/s\n",
-               1e-3*bits_act*sampling_rate/(frame_size*(double)count_act));
+               1e-3*bits_act*sampling_rate/(1e-15+frame_size*(double)count_act));
     fprintf (stderr, "bitrate standard deviation:  %7.3f kb/s\n",
             1e-3*sqrt(bits2/count - bits*bits/(count*(double)count))*sampling_rate/frame_size);
     /* Close any files to which intermediate results were stored */

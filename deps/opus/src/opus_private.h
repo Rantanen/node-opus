@@ -33,6 +33,8 @@
 #include "opus.h"
 #include "celt.h"
 
+#include <stddef.h> /* offsetof */
+
 struct OpusRepacketizer {
    unsigned char toc;
    int nb_frames;
@@ -107,10 +109,16 @@ int opus_decode_native(OpusDecoder *st, const unsigned char *data, opus_int32 le
       opus_val16 *pcm, int frame_size, int decode_fec, int self_delimited,
       opus_int32 *packet_offset, int soft_clip);
 
-/* Make sure everything's aligned to sizeof(void *) bytes */
+/* Make sure everything is properly aligned. */
 static OPUS_INLINE int align(int i)
 {
-    return (i+(int)sizeof(void *)-1)&-(int)sizeof(void *);
+    struct foo {char c; union { void* p; opus_int32 i; opus_val32 v; } u;};
+
+    unsigned int alignment = offsetof(struct foo, u);
+
+    /* Optimizing compilers should optimize div and multiply into and
+       for all sensible alignment values. */
+    return ((i + alignment - 1) / alignment) * alignment;
 }
 
 int opus_packet_parse_impl(const unsigned char *data, opus_int32 len,
