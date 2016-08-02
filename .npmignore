@@ -3,5 +3,7 @@
 /deps/build
 *.pcm
 *.opus
-node_modules/
 .vscode
+.gitignore
+.jshintrc
+.travis.yml
