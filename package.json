@@ -1,7 +1,7 @@
 {
   "name": "node-opus",
   "description": "NodeJS native binding to OPUS",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": "Mikko Rantanen <jubjub@jubjubnest.net>",
   "homepage": "https://github.com/Rantanen/node-opus",
   "bugs": "https://github.com/Rantanen/node-opus/issues",
