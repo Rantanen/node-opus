@@ -148,7 +148,7 @@ class OpusEncoder : public ObjectWrap {
 
 		static void ApplyEncoderCTL( const Nan::FunctionCallbackInfo< v8::Value >&info ) {
 
-			REQ_INT_ARG( 0, flag );
+			REQ_INT_ARG( 0, ctl );
 			REQ_INT_ARG( 1, value );
 			
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
@@ -157,13 +157,13 @@ class OpusEncoder : public ObjectWrap {
 				return;
 			}
 
-			if( opus_encoder_ctl( self->encoder, flag, value ) != OPUS_OK )
-				return Nan::ThrowError( "Invalid CTL flag/value" );
+			if( opus_encoder_ctl( self->encoder, ctl, value ) != OPUS_OK )
+				return Nan::ThrowError( "Invalid ctl/value" );
 		}
 
 		static void ApplyDecoderCTL( const Nan::FunctionCallbackInfo< v8::Value >&info ) {
 
-			REQ_INT_ARG( 0, flag );
+			REQ_INT_ARG( 0, ctl );
 			REQ_INT_ARG( 1, value );
 
 			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
@@ -172,8 +172,8 @@ class OpusEncoder : public ObjectWrap {
 				return;
 			}
 
-			if ( opus_decoder_ctl( self->decoder, flag, value ) != OPUS_OK)
-				return Nan::ThrowError( "Invalid CTL flag/value" );
+			if ( opus_decoder_ctl( self->decoder, ctl, value ) != OPUS_OK)
+				return Nan::ThrowError( "Invalid ctl/value" );
 		}
 
 		static void SetBitrate( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
