@@ -95,7 +95,7 @@ class OpusEncoder : public ObjectWrap {
 			}
 
 
-			// Read the functiona rguments
+			// Read the function arguments
 			REQ_OBJ_ARG( 0, pcmBuffer );
 			OPT_INT_ARG( 1, maxPacketSize, MAX_PACKET_SIZE );
 
@@ -146,6 +146,36 @@ class OpusEncoder : public ObjectWrap {
 				info.GetReturnValue().Set( actualBuffer.ToLocalChecked() );
 		}
 
+		static void ApplyEncoderCTL( const Nan::FunctionCallbackInfo< v8::Value >&info ) {
+
+			REQ_INT_ARG( 0, ctl );
+			REQ_INT_ARG( 1, value );
+			
+			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
+			if ( self->EnsureEncoder() != OPUS_OK ) {
+				Nan::ThrowError( "Could not create encoder. Check the encoder parameters" );
+				return;
+			}
+
+			if( opus_encoder_ctl( self->encoder, ctl, value ) != OPUS_OK )
+				return Nan::ThrowError( "Invalid ctl/value" );
+		}
+
+		static void ApplyDecoderCTL( const Nan::FunctionCallbackInfo< v8::Value >&info ) {
+
+			REQ_INT_ARG( 0, ctl );
+			REQ_INT_ARG( 1, value );
+
+			OpusEncoder* self = ObjectWrap::Unwrap<OpusEncoder>( info.This() );
+			if ( self->EnsureDecoder() != OPUS_OK ) {
+				Nan::ThrowError( "Could not create decoder. Check the decoder parameters" );
+				return;
+			}
+
+			if ( opus_decoder_ctl( self->decoder, ctl, value ) != OPUS_OK)
+				return Nan::ThrowError( "Invalid ctl/value" );
+		}
+
 		static void SetBitrate( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
 
 			REQ_INT_ARG( 0, bitrate );
@@ -176,29 +206,31 @@ class OpusEncoder : public ObjectWrap {
 
 		static void New( const Nan::FunctionCallbackInfo< v8::Value >& info ) {
 
-			if( !info.IsConstructCall()) {
+			if( !info.IsConstructCall() ) {
 				return Nan::ThrowTypeError("Use the new operator to construct the OpusEncoder.");
 			}
 
-			OPT_INT_ARG(0, rate, 48000);
-			OPT_INT_ARG(1, channels, 1);
-			OPT_INT_ARG(2, application, OPUS_APPLICATION_AUDIO);
+			OPT_INT_ARG( 0, rate, 48000 );
+			OPT_INT_ARG( 1, channels, 1 );
+			OPT_INT_ARG( 2, application, OPUS_APPLICATION_AUDIO );
 
 			OpusEncoder* encoder = new OpusEncoder( rate, channels, application );
 
 			encoder->Wrap( info.This() );
-			info.GetReturnValue().Set(info.This());
+			info.GetReturnValue().Set( info.This() );
 		}
 
 		static void Init( Local<Object> exports ) {
 			Nan::HandleScope scope;
 
-			Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+			Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>( New );
 			tpl->SetClassName(Nan::New("OpusEncoder").ToLocalChecked());
-			tpl->InstanceTemplate()->SetInternalFieldCount(1);
+			tpl->InstanceTemplate()->SetInternalFieldCount( 1 );
 
 			Nan::SetPrototypeMethod( tpl, "encode", Encode );
 			Nan::SetPrototypeMethod( tpl, "decode", Decode );
+			Nan::SetPrototypeMethod( tpl, "applyEncoderCTL", ApplyEncoderCTL );
+			Nan::SetPrototypeMethod( tpl, "applyDecoderCTL", ApplyDecoderCTL );
 			Nan::SetPrototypeMethod( tpl, "setBitrate", SetBitrate );
 			Nan::SetPrototypeMethod( tpl, "getBitrate", GetBitrate );
 
