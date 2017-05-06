@@ -5,3 +5,4 @@
 *.opus
 node_modules/
 .vscode
+/coverage

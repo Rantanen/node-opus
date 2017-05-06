@@ -1,7 +1,7 @@
 
 "use strict";
 
-var opus = require('../');
+var opus = require('../../');
 var fs = require('fs');
 
 //

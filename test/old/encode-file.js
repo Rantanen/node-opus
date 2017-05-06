@@ -1,6 +1,6 @@
 
 var ogg = require( 'ogg' );
-var opus = require( '../' );
+var opus = require( '../../' );
 
 var oggEncoder = new ogg.Encoder();
 var opusEncoder = new opus.Encoder();
