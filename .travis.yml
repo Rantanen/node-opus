@@ -1,0 +1,24 @@
+language: node_js
+env:
+    - CXX=g++-4.8
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+        packages:
+            - g++-4.8
+install:
+    - npm install -g gulp istanbul codeclimate-test-reporter
+    - npm install
+    - npm install ogg-packet
+    - npm install codecov.io
+node_js:
+    - node
+    - "0.10"
+script:
+    - npm test
+    - istanbul cover node_modules/mocha/bin/_mocha
+after_script:
+    - codeclimate < coverage/lcov.info
+    - node_modules/codecov.io/bin/codecov.io.js < coverage/coverage.json
+
