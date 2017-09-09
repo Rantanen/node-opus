@@ -14,7 +14,6 @@ install:
     - npm install codecov.io
 node_js:
     - node
-    - "0.10"
 script:
     - npm test
     - istanbul cover node_modules/mocha/bin/_mocha
