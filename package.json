@@ -23,6 +23,7 @@
   "cpu": [
     "x64",
     "arm",
+    "arm64",
     "ia32"
   ],
   "engines": {
