@@ -31,6 +31,7 @@ Platform support
 Supported platforms:
 - Linux x64 & ia32
 - Linux ARM (Raspberry Pi 1 & 2)
+- Linux ARM64 (Raspberry Pi 3)
 - Mac OS X x64
 - Windows x64
 
