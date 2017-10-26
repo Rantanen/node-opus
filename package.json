@@ -27,7 +27,7 @@
     "ia32"
   ],
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=4.5.0"
   },
   "dependencies": {
     "bindings": "~1.2.1",
