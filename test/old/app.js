@@ -14,7 +14,7 @@ var rate = 48000;
 // Allocate a buffer for the tone. We use 16-bit samples.
 var samples = rate*time;
 var length = samples*2;
-var b = new Buffer(length);
+var b = Buffer.alloc(length);
 
 // Generate the tone.
 for( var i = 0; i < rate*time; i++ ) {
@@ -41,7 +41,7 @@ while( b.length > 0 ) {
     
     // If the input buffer is smaller than the frame_size, copy it into a new 0-padded buffer.
 	if( size < frame_size ) {
-		var temp = new Buffer( frame_size );
+		var temp = Buffer.alloc( frame_size );
         temp.fill(0);
         b.copy( temp );
         b = temp;
