@@ -12,8 +12,17 @@
 /* Do not build the float API */
 #undef DISABLE_FLOAT_API
 
+/* Disable bitstream fixes from RFC 8251 */
+#undef DISABLE_UPDATE_DRAFT
+
 /* Assertions */
 #undef ENABLE_ASSERTIONS
+
+/* Ambisonics Support */
+#undef ENABLE_EXPERIMENTAL_AMBISONICS
+
+/* Hardening */
+#undef ENABLE_HARDENING
 
 /* Debug fixed-point implementation */
 #undef FIXED_DEBUG
@@ -72,8 +81,7 @@
 /* Define to 1 if you have the `__malloc_hook' function. */
 #undef HAVE___MALLOC_HOOK
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Make use of ARM asm optimization */
@@ -100,8 +108,11 @@
 /* Define if compiler supports NEON instructions */
 #undef OPUS_ARM_MAY_HAVE_NEON
 
-/* Compiler supports ARMv7 Neon Intrinsics */
+/* Compiler supports ARMv7/Aarch64 Neon Intrinsics */
 #undef OPUS_ARM_MAY_HAVE_NEON_INTR
+
+/* Define if binary requires Aarch64 Neon Intrinsics */
+#undef OPUS_ARM_PRESUME_AARCH64_NEON_INTR
 
 /* Define if binary requires EDSP instruction support */
 #undef OPUS_ARM_PRESUME_EDSP
@@ -117,6 +128,9 @@
 
 /* This is a build of OPUS */
 #undef OPUS_BUILD
+
+/* Run bit-exactness checks between optimized and c implementations */
+#undef OPUS_CHECK_ASM
 
 /* Use run-time CPU capabilities detection */
 #undef OPUS_HAVE_RTCD
