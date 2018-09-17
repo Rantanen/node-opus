@@ -9,6 +9,8 @@ install:
   - npm install --global npm@latest
   - set PATH=%APPDATA%\npm;%PATH%
   - npm install
+  - npm install -g gulp istanbul codeclimate-test-reporter
+  - npm install ogg-packet
 
 matrix:
   fast_finish: true
