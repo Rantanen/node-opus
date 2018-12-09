@@ -40,6 +40,11 @@ describe( 'Decoder', function() {
                 var decoder = new opus.Decoder( hzDecode, chanDecode );
                 var oggDecoder = new ogg.Decoder();
                 oggDecoder.on( 'stream', function( stream ) {
+
+                    // Workaround to Node issue #24915
+                    // https://github.com/nodejs/node/issues/24915
+                    stream._readableState.highWaterMark = 1;
+
                     stream.pipe( decoder );
                 });
 
