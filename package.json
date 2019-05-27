@@ -1,7 +1,7 @@
 {
   "name": "node-opus",
   "description": "NodeJS native binding to OPUS",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Mikko Rantanen <jubjub@jubjubnest.net>",
   "homepage": "https://github.com/Rantanen/node-opus",
   "bugs": "https://github.com/Rantanen/node-opus/issues",
@@ -32,7 +32,7 @@
   "dependencies": {
     "bindings": "~1.2.1",
     "commander": "^2.9.0",
-    "nan": "^2.10.0"
+    "nan": "^2.14.0"
   },
   "optionalDependencies": {
     "ogg-packet": "^1.0.0"
