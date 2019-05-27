@@ -236,7 +236,9 @@ class OpusEncoder : public ObjectWrap {
 
 			//v8::Persistent<v8::FunctionTemplate> constructor;
 			//Nan::AssignPersistent(constructor, tpl);
-			exports->Set( Nan::New("OpusEncoder").ToLocalChecked(), tpl->GetFunction() );
+			Nan::Set( exports,
+					Nan::New("OpusEncoder").ToLocalChecked(),
+					Nan::GetFunction( tpl ).ToLocalChecked() );
 		}
 };
 

@@ -37,11 +37,11 @@
 
 #define REQ_INT_ARG(I, VAR) \
 	REQUIRE_ARG( I, IsNumber() ) \
-	int VAR = info[I]->Int32Value()
+	int VAR = Nan::To<int>( info[I] ).FromJust()
 
 #define OPT_INT_ARG(I, VAR, DEFAULT) \
 	int VAR; \
-	CHECK_ARG( I, IsNumber(), VAR = info[I]->Int32Value(), VAR = DEFAULT )
+	CHECK_ARG( I, IsNumber(), VAR = Nan::To<int>( info[I] ).FromJust(), VAR = DEFAULT )
 
 #define REQ_FUN_ARG(I, VAR)                                      \
   if (info.Length() <= (I) || !info[I]->IsFunction())            \
