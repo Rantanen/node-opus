@@ -18,7 +18,8 @@
     "linux",
     "darwin",
     "win32",
-    "freebsd"
+    "freebsd",
+    "android"
   ],
   "cpu": [
     "x64",
