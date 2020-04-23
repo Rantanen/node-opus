@@ -1,3 +1,7 @@
+# This project has been archived due to lack of maintenance and support for new Node.js versions.
+
+### See [@discordjs/opus](https://github.com/discordjs/opus) for an alternative based on the more modern N-API technology that is more stable between Node.js versions. More information in [@discordjs/discord.js#3678](https://github.com/discordjs/discord.js/issues/3678).
+
 node-opus
 =========
 ### NodeJS native bindings to libopus
